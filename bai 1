@@ -1,0 +1,127 @@
+# BÀI TẬP: XÂY DỰNG SCRIPT TỰ ĐỘNG LỌC LOG BẰNG POWERSHELL
+
+## 1. Thiết kế kiến trúc Script
+
+Script `auto_report.ps1` được chia thành 3 phần chính:
+
+**Phần 1: Header và Comments**
+
+- Ghi tên chương trình và mục đích sử dụng.
+- Ghi chú chức năng của từng phần để dễ theo dõi và chỉnh sửa.
+
+**Phần 2: Header giao diện**
+
+- Sử dụng `Write-Host` để hiển thị tên công cụ.
+- Sử dụng `-ForegroundColor` để tạo màu sắc nổi bật cho giao diện Terminal.
+
+**Phần 3: Logic xử lý**
+
+- Sử dụng `Get-Date` để lấy ngày hiện tại.
+- Ghi tiêu đề báo cáo vào file.
+- Đọc file log đầu vào.
+- Lọc các dòng có lỗi HTTP 404.
+- Nối kết quả vào cuối file báo cáo bằng `Add-Content`.
+
+## 2. Mã nguồn file auto_report.ps1
+
+Giả sử file log đầu vào có tên `access.log`, được đặt cùng thư mục với script.
+
+```powershell
+# ==========================================
+# Ten file: auto_report.ps1
+# Chuc nang: Loc loi 404 va tao bao cao log
+# ==========================================
+
+# Hien thi tieu de
+Write-Host "===================================" -ForegroundColor Cyan
+Write-Host "       AUTO LOG REPORT TOOL        " -ForegroundColor Yellow
+Write-Host "===================================" -ForegroundColor Cyan
+
+# Khai bao duong dan file
+$logFile = ".\access.log"
+$reportFile = ".\report.txt"
+
+# Lay ngay hien tai
+$today = Get-Date -Format "dd/MM/yyyy"
+
+# Kiem tra file log co ton tai khong
+if (Test-Path $logFile) {
+
+    # Ghi tieu de moi vao bao cao
+    Add-Content -Path $reportFile -Value "=== LOG REPORT DATE [$today] ==="
+
+    # Doc file log va loc cac dong co loi 404
+    $errors = Get-Content $logFile | Select-String "404"
+
+    # Noi ket qua vao file bao cao
+    if ($errors) {
+        Add-Content -Path $reportFile -Value $errors
+        Write-Host "Da tim thay loi 404 va luu vao bao cao." -ForegroundColor Green
+    }
+    else {
+        Add-Content -Path $reportFile -Value "Khong tim thay loi 404."
+        Write-Host "Khong tim thay loi 404." -ForegroundColor Green
+    }
+
+    Write-Host "Bao cao duoc luu tai: $reportFile" -ForegroundColor Cyan
+}
+else {
+    Write-Host "Khong tim thay file access.log!" -ForegroundColor Red
+}
+
+Write-Host "Hoan thanh!" -ForegroundColor Yellow
+```
+
+## 3. Giải thích cách hoạt động
+
+1. `Write-Host`: Hiển thị tiêu đề và thông báo trên màn hình Terminal.
+2. `Get-Date`: Lấy ngày hiện tại để đưa vào tiêu đề báo cáo.
+3. `Test-Path`: Kiểm tra xem file `access.log` có tồn tại hay không.
+4. `Get-Content`: Đọc nội dung file log.
+5. `Select-String "404"`: Tìm các dòng chứa chuỗi `404`.
+6. `Add-Content`: Ghi thêm tiêu đề và kết quả vào cuối file `report.txt`, không xóa nội dung báo cáo của những lần chạy trước.
+
+## 4. Cách chạy chương trình
+
+Bước 1: Tạo thư mục chứa chương trình, ví dụ `D:\log-tool`.
+
+Bước 2: Lưu mã nguồn trên thành file `auto_report.ps1` và đặt file `access.log` cùng thư mục.
+
+Bước 3: Mở PowerShell tại thư mục đó và chạy:
+
+```powershell
+.\auto_report.ps1
+```
+
+Nếu PowerShell chặn việc chạy script do chính sách thực thi, có thể chạy riêng cho phiên hiện tại bằng lệnh:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+```
+
+Sau đó chạy lại script.
+
+## 5. Kết quả dự kiến
+
+Nếu file `access.log` có nội dung:
+
+```text
+192.168.1.10 GET /home 200
+192.168.1.11 GET /missing-page 404
+192.168.1.12 GET /login 200
+192.168.1.13 GET /products 404
+```
+
+File `report.txt` sẽ có nội dung tương tự:
+
+```text
+=== LOG REPORT DATE [09/10/2026] ===
+192.168.1.11 GET /missing-page 404
+192.168.1.13 GET /products 404
+```
+
+Ngày trong báo cáo được lấy tự động theo ngày chạy thực tế. Mỗi lần chạy, chương trình sẽ thêm một tiêu đề mới và kết quả mới vào cuối file báo cáo.
+
+## 6. Kết luận
+
+Script `auto_report.ps1` giúp tự động hóa công việc đọc log, tìm lỗi 404 và lưu kết quả vào file báo cáo. Nhờ sử dụng `Add-Content`, dữ liệu từ những lần chạy trước vẫn được giữ lại. Qua bài tập này, em hiểu cách kết hợp các lệnh PowerShell để xây dựng một công cụ nhỏ phục vụ công việc thực tế.
